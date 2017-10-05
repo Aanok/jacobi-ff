@@ -2,8 +2,9 @@
 #include <vector>
 #include <thread>
 #include <random>
+#include <cmath>
 
-#define MAX_ITER 100000
+#define MAX_ITER 1000
 #define BATCH_SIZE 5
 #define ERROR_THRESH 1.0e-1
 
@@ -12,6 +13,7 @@ using namespace std;
 typedef vector<double> row;
 
 vector<row> A; // NB this doesn't affect performance because the computation maps independently to rows
+vector<double> sol;
 vector<double> x;
 vector<double> b;
 unsigned int size;
@@ -20,17 +22,28 @@ unsigned int size;
 void init_rand(const int seed = 666)
 {
   unsigned int i, j;
+  double sum;
   default_random_engine generator(seed);
-  uniform_int_distribution<> distribution(-100, 100);
+  uniform_real_distribution<> distribution(-100, 100);
   
   A.reserve(size);
   x.reserve(size);
+  sol.reserve(size);
   b.reserve(size);
   for (i = 0; i < size; i++) {
     x.push_back(distribution(generator));
-    b.push_back(distribution(generator));
+    sol.push_back(distribution(generator));
     A[i].reserve(size);
     for (j = 0; j < size; j++) A[i].push_back(distribution(generator));
+  }
+  
+  // generate b as A*sol so the system has a solution for certain
+  for (i = 0; i < size; i++) {
+    sum = 0;
+    for (j = 0; j < size; j++) {
+      sum += A[i][j]*sol[j];
+    }
+    b[i] = sum;
   }
 }
 
@@ -42,7 +55,7 @@ inline double get_error(vector<double>::const_iterator old_start,
   double error = 0;
   
   for(; old_start <= old_end; old_start++) {
-    error += *new_start - *old_start;
+    error += abs(*new_start - *old_start);
     new_start++;
   }
   
@@ -110,6 +123,8 @@ int main(int argc, char* argv[])
   tt.push_back(thread(task,(nworkers-1)*stripe, size-1));
   
   for (i = 0; i < nworkers; i++) tt[i].join();
+  
+  cerr << "error: " << get_error(x.cbegin(), x.cend(), sol.cbegin(), sol.cend()) << endl;
   
   return 0;
 }
