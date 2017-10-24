@@ -7,7 +7,7 @@
 #include <condition_variable>
 #include "barrier.hpp"
 
-#define ERROR_THRESH 1.0e-5
+#define ERROR_THRESH 1.0e-1
 
 using namespace std;
 
@@ -20,7 +20,6 @@ vector<vect> x;
 vect b;
 unsigned int size, max_iter;
 
-
 barrier *jacobi_barrier;
 
 
@@ -28,6 +27,7 @@ inline float rand_float(const int low, const int high)
 {
   return rand()/RAND_MAX*(high-low) + low;
 }
+
 
 void init_rand(const int seed = 666)
 {

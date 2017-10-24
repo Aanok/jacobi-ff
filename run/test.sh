@@ -40,3 +40,5 @@ for test in "baseline" "blocks" "components"; do
   # draw plot
   "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}.dat" "$RESULTS/${test}_${arch}.svg"
 done
+
+touch "$RUN/../DONE"
