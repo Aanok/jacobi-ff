@@ -2,7 +2,7 @@
 
 DATE="$(date +%F@%R)"
 RUN="$(dirname $(readlink -f $0))"
-RESULTS="$RUN/$DATE"
+RESULTS="$RUN/../tests/$DATE"
 BIN="${RUN%%run}bin"
 
 SIZE=10000
@@ -25,18 +25,18 @@ case "$arch" in
     binsuff="xeon"
     ;;
   ?*)
-    printf 'ERROR: Unknown architecture "%s"\n' "$arch" >&2
+    printf '$0: Unknown architecture "%s"\n' "$arch" >&2
     exit 1
     ;;
 esac
 
 # create results folder
-mkdir "$RESULTS"
+mkdir -p "$RESULTS"
 
 # run tests
 for test in "baseline" "blocks" "components"; do
   # generate data
   "$RUN/run.sh" "$BIN/${test}_${binsuff}" "$SIZE" "$NITER" "$maxthreads" "$STEP" "$RESULTS/${test}_${arch}.dat"
   # draw plot
-  "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}.dat" "$RESULTS/${test}_${arch}.png"
+  "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}.dat" "$RESULTS/${test}_${arch}.svg"
 done

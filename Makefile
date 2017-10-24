@@ -43,8 +43,11 @@ testi5 : baseline_xeon components_xeon blocks_xeon
 	run/test.sh i5
 
 	
-clean :
-	rm -rf bin test
-
 cleanresults :
-	rm -rf run/20*
+	rm -rf tests DONE
+
+cleanbinaries :
+	rm -rf bin
+
+clean : cleanbinaries cleanresults
+

@@ -12,43 +12,46 @@
 
 using namespace std;
 
-//class barrier; // forward declaration because c++ linking is a wild ride
+typedef vector<double> vect;
+typedef vector<vect> matrix;
 
-vector<vector<float>> A; // NB this doesn't affect performance because the computation maps independently to rows
-vector<float> sol;
-vector<vector<float>> x;
-vector<float> b;
+matrix A; // NB this doesn't affect performance because the computation maps independently to rows
+vect sol;
+vector<vect> x;
+vect b;
 unsigned int size, max_iter;
 
 
 barrier *jacobi_barrier;
 
 
+inline double rand_double(const int low, const int high)
+{
+  return rand()/RAND_MAX*(high-low) + low;
+}
+
 void init_rand(const int seed = 666)
 {
   unsigned int i, j;
+  int low = -10;
+  int high = 10;
   double sum;
-  default_random_engine generator(seed);
-  uniform_real_distribution<> distribution(-10, 10);
   
-  A.reserve(size);
-  x.reserve(2);
-  x[0].reserve(size);
-  x[1].reserve(size);
-  sol.reserve(size);
-  b.reserve(size);
+  A = matrix(size, vect(size));
+  x = matrix(2, vect(size));
+  sol = vect(size);
+  b = vect(size);
   for (i = 0; i < size; i++) {
-    x[0].push_back(distribution(generator));
-    sol.push_back(distribution(generator));
-    A[i].reserve(size);
+    x[0][i] = rand_double(low, high);
+    sol[i] = rand_double(low, high);
     sum = 0;
     // enforce weak diagonal predominance
     for (j = 0; j < i; j++) {
-      A[i][j] = distribution(generator);
+      A[i][j] = rand_double(low, high);
       sum += abs(A[i][j]);
     }
     for (j = i+1; j < size; j++) {
-      A[i][j] = distribution(generator);
+      A[i][j] = rand_double(low, high);
       sum += abs(A[i][j]);
     }
     // enforce strong diagonal predominance
@@ -66,13 +69,14 @@ void init_rand(const int seed = 666)
 }
 
 
-inline float get_error(const unsigned int low, const unsigned int high)
+
+inline double get_error(const unsigned int low, const unsigned int high)
 // Error is computed as maximum absolute difference between matching components in the stripe
 {
   auto x0_it = x[0].cbegin() + low;
   const auto x0_end = x[0].cbegin() + high;
   auto x1_it = x[1].cbegin() + low;
-  float error = 0;
+  double error = 0;
   
   while (x0_it <= x0_end) {
     error = max(error, abs(*x1_it - *x0_it));

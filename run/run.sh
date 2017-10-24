@@ -12,11 +12,15 @@ outfile=$6
 echo "#threads performance time" >> "$outfile"
 
 # run sequentially and set aside
+printf "$program $size $niter 1... "
 SEQTIME=$("$program" "$size" "$niter" 1)
+printf "done.\n"
 echo 1 1 $SEQTIME >> "$outfile"
 
 for ((NTHREAD = 2; NTHREAD <= maxthreads; NTHREAD+=step)); do
+  printf "$program $size $niter $NTHREAD... "
   PARTIME=$($program $size $niter $NTHREAD)
+  printf "done.\n"
   PERF=$(awk "BEGIN {printf \"%f\",${SEQTIME}/${PARTIME}}")
   echo $NTHREAD $PERF $PARTIME >> "$outfile"
 done
