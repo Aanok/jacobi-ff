@@ -7,12 +7,11 @@
 #include <condition_variable>
 #include "barrier.hpp"
 
-#define BATCH_SIZE 5
 #define ERROR_THRESH 1.0e-5
 
 using namespace std;
 
-typedef vector<double> vect;
+typedef vector<float> vect;
 typedef vector<vect> matrix;
 
 matrix A; // NB this doesn't affect performance because the computation maps independently to rows
@@ -25,7 +24,7 @@ unsigned int size, max_iter;
 barrier *jacobi_barrier;
 
 
-inline double rand_double(const int low, const int high)
+inline float rand_float(const int low, const int high)
 {
   return rand()/RAND_MAX*(high-low) + low;
 }
@@ -35,23 +34,23 @@ void init_rand(const int seed = 666)
   unsigned int i, j;
   int low = -10;
   int high = 10;
-  double sum;
+  float sum;
   
   A = matrix(size, vect(size));
   x = matrix(2, vect(size));
   sol = vect(size);
   b = vect(size);
   for (i = 0; i < size; i++) {
-    x[0][i] = rand_double(low, high);
-    sol[i] = rand_double(low, high);
+    x[0][i] = rand_float(low, high);
+    sol[i] = rand_float(low, high);
     sum = 0;
     // enforce weak diagonal predominance
     for (j = 0; j < i; j++) {
-      A[i][j] = rand_double(low, high);
+      A[i][j] = rand_float(low, high);
       sum += abs(A[i][j]);
     }
     for (j = i+1; j < size; j++) {
-      A[i][j] = rand_double(low, high);
+      A[i][j] = rand_float(low, high);
       sum += abs(A[i][j]);
     }
     // enforce strong diagonal predominance
@@ -70,13 +69,13 @@ void init_rand(const int seed = 666)
 
 
 
-inline double get_error(const unsigned int low, const unsigned int high)
+inline float get_error(const unsigned int low, const unsigned int high)
 // Error is computed as maximum absolute difference between matching components in the stripe
 {
   auto x0_it = x[0].cbegin() + low;
   const auto x0_end = x[0].cbegin() + high;
   auto x1_it = x[1].cbegin() + low;
-  double error = 0;
+  float error = 0;
   
   while (x0_it <= x0_end) {
     error = max(error, abs(*x1_it - *x0_it));
@@ -92,7 +91,7 @@ inline void iterate_stripe(const unsigned int low, const unsigned int high, cons
 {
   unsigned int i, j;
   unsigned int antiparity = (parity + 1) % 2;
-  double tmp;
+  float tmp;
   for (i = low; i <= high; i++) {
     // formula: x_i = (1/A_ii)*(b_i - sum(j=0..i-1,i+1..size-1, A_ij*x_j))
     tmp = b[i];
@@ -110,19 +109,16 @@ void task(const unsigned int low, const unsigned int high)
   unsigned int parity = 1;
   
   while (iter <= max_iter) {
-    // do a batch of iterations
-    for (t = 0; t < BATCH_SIZE; t++) {
-      // each iteration goes over the assigned values in the stripe
-      iterate_stripe(low, high, parity);
-      jacobi_barrier->stop_at();
-      parity = (parity + 1) % 2;
-      iter++;
-    }
+    // each iteration goes over the assigned values in the stripe
+    iterate_stripe(low, high, parity);
+    //jacobi_barrier->stop_at();
+    parity = (parity + 1) % 2;
+    iter++;
     
-    // do one convergence check per batch
+    // check for convergence
     if (get_error(low, high) <= ERROR_THRESH) {
       //cerr << "slice (" << low << "," << high << ") converged after " << iter << " iterations" << endl;
-      jacobi_barrier->leave();
+      //jacobi_barrier->leave();
       return;
     }
   }
@@ -136,7 +132,7 @@ int main(int argc, char* argv[])
   unsigned int nworkers, stripe, i;
   vector<thread> tt;
   chrono::time_point<chrono::high_resolution_clock> start, end;
-  chrono::duration<double> t_proc;
+  chrono::duration<float> t_proc;
   
   // Manage command line arguments
   if (argc < 3) {
