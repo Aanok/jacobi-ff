@@ -1,7 +1,9 @@
-CC := g++
+CC := icc
 CFLAGS := -O3 -std=c++11
-MICFLAGS := 
-DATE_DIR := "$(date +%F@%R)"
+REPORT := -qopt-report -qopt-report-phase=vec -qopt-report -qopt-report-phase=par
+MICFLAGS := -mmic
+FFDIR := /home/spm1501/fastflow
+FF = -I $(FFDIR) -DNO_DEFAULT_MAPPING
 .PHONY: \
 	build build_xeon build_mic bin\
 	testmic testxeon testi5
@@ -16,8 +18,8 @@ bin :
 
 build_xeon : baseline_xeon blocks_xeon components_xeon
 
-baseline_xeon : src/baseline/baseline.cpp src/baseline/barrier.cpp src/baseline/barrier.hpp bin
-	$(CC) $(CFLAGS) -pthread $(subst bin,, $^) -o bin/$@
+baseline_xeon : src/baseline/baseline.cpp src/baseline/barrier.cpp bin
+	$(CC) $(CFLAGS) $(RFLAGS) -pthread $(subst bin,, $^) -o bin/$@
 
 blocks_xeon:
 
@@ -29,7 +31,8 @@ testxeon : baseline_xeon components_xeon blocks_xeon
 	
 build_mic : baseline_mic blocks_mic components_mic
 
-baseline_mic :
+baseline_mic : src/baseline/baseline.cpp src/baseline/barrier.cpp bin
+	$(CC) $(CFLAGS) $(RFLAGS) $(MICFLAGS) -pthread $(subst bin,, $^) -o bin/$@
 
 blocks_mic :
 

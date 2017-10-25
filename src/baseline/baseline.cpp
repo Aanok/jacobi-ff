@@ -111,19 +111,16 @@ void task(const unsigned int low, const unsigned int high)
   while (iter <= max_iter) {
     // each iteration goes over the assigned values in the stripe
     iterate_stripe(low, high, parity);
-    //jacobi_barrier->stop_at();
+    jacobi_barrier->stop_at();
     parity = (parity + 1) % 2;
     iter++;
     
     // check for convergence
     if (get_error(low, high) <= ERROR_THRESH) {
-      //cerr << "slice (" << low << "," << high << ") converged after " << iter << " iterations" << endl;
-      //jacobi_barrier->leave();
+      jacobi_barrier->leave();
       return;
     }
   }
-
-  //cerr << "slice (" << low << "," << high << ") did not converge" << endl;
 }
 
 
