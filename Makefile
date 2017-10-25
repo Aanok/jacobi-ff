@@ -1,5 +1,5 @@
-CC := icc
-CFLAGS := -O3 -std=c++11
+CC := g++
+CFLAGS := -O3 -std=c++11 -I src/shared
 REPORT := -qopt-report -qopt-report-phase=vec -qopt-report -qopt-report-phase=par
 MICFLAGS := -mmic
 FFDIR := /home/spm1501/fastflow
@@ -18,8 +18,8 @@ bin :
 
 build_xeon : baseline_xeon blocks_xeon components_xeon
 
-baseline_xeon : src/baseline/baseline.cpp src/baseline/barrier.cpp bin
-	$(CC) $(CFLAGS) $(RFLAGS) -pthread $(subst bin,, $^) -o bin/$@
+baseline_xeon : src/shared/shared.cpp src/baseline/barrier.cpp src/baseline/baseline.cpp bin
+	$(CC) $(CFLAGS) -pthread $(subst bin,, $^) -o bin/$@
 
 blocks_xeon:
 
@@ -31,8 +31,8 @@ testxeon : baseline_xeon components_xeon blocks_xeon
 	
 build_mic : baseline_mic blocks_mic components_mic
 
-baseline_mic : src/baseline/baseline.cpp src/baseline/barrier.cpp bin
-	$(CC) $(CFLAGS) $(RFLAGS) $(MICFLAGS) -pthread $(subst bin,, $^) -o bin/$@
+baseline_mic : src/baseline/baseline.cpp src/baseline/barrier.cpp src/shared/shared.cpp bin
+	$(CC) $(CFLAGS) $(REPORT) $(MICFLAGS) -pthread $(subst bin,, $^) -o bin/$@
 
 blocks_mic :
 
