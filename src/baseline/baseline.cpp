@@ -7,7 +7,7 @@
 #include "barrier.hpp"
 #include <shared.hpp>
 
-#define ERROR_THRESH 1.0e-3
+#define ERROR_THRESH 1.0e-10
 
 using namespace std;
 
@@ -16,6 +16,7 @@ vect sol;
 matrix x;
 vect b;
 unsigned int size, max_iter;
+double error = ERROR_THRESH + 1;
 
 barrier *jacobi_barrier;
 
@@ -24,7 +25,7 @@ inline void iterate_stripe(const unsigned int low, const unsigned int high, cons
 {
   unsigned int i, j;
   unsigned int antiparity = (parity + 1) % 2;
-  float tmp;
+  double tmp;
   for (i = low; i <= high; i++) {
     // formula: x_i = (1/A_ii)*(b_i - sum(j=0..i-1,i+1..size-1, A_ij*x_j))
     tmp = b[i];
@@ -41,15 +42,14 @@ void task(const unsigned int low, const unsigned int high)
   unsigned int iter = 0;
   unsigned int parity = 1;
   
-  while (iter <= max_iter) {
+  while (iter <= max_iter && error > ERROR_THRESH) {
     // each iteration goes over the assigned values in the stripe
     iterate_stripe(low, high, parity);
-    jacobi_barrier->stop_at();
     parity = (parity + 1) % 2;
     iter++;
     
     // check for convergence
-    if (get_error(x[0], x[1], low, high) <= ERROR_THRESH) {
+    if (error_comp(x[0], x[1], low, high) <= ERROR_THRESH) {
       jacobi_barrier->leave();
       return;
     }
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 {
   unsigned int nworkers, stripe;
   chrono::time_point<chrono::high_resolution_clock> start, end;
-  chrono::duration<float> t_proc;
+  chrono::duration<double> t_proc;
   
   // Manage command line arguments
   if (argc < 4) {
@@ -88,6 +88,7 @@ int main(int argc, char* argv[])
   nworkers = stoi(argv[3]);
   
   // init to random instance
+  srand(123);
   tie(A, x, sol, b) = init_rand(size, -10, 10);
   jacobi_barrier = new barrier(nworkers);
   

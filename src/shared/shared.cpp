@@ -1,8 +1,8 @@
 #include "shared.hpp"
 
-inline float rand_float(const int low, const int high)
+inline double rand_double(const int low, const int high)
 {
-  return std::rand()/RAND_MAX*(high-low) + low;
+  return double(std::rand())/RAND_MAX *(high-low) + low;
 }
 
 
@@ -11,23 +11,23 @@ std::tuple<matrix, matrix, vect, vect> init_rand(const unsigned int size,
                                                  const unsigned int high)
 {
   unsigned int i, j;
-  float sum;
+  double sum;
   matrix A(size, vect(size));
   matrix x(2, vect(size));
   vect sol(size);
   vect b(size);
   
   for (i = 0; i < size; i++) {
-    x[0][i] = rand_float(low, high);
-    sol[i] = rand_float(low, high);
+    x[0][i] = rand_double(low, high);
+    sol[i] = rand_double(low, high);
     sum = 0;
     // setup for weak diagonal predominance
     for (j = 0; j < i; j++) {
-      A[i][j] = rand_float(low, high);
+      A[i][j] = rand_double(low, high);
       sum += std::abs(A[i][j]);
     }
     for (j = i+1; j < size; j++) {
-      A[i][j] = rand_float(low, high);
+      A[i][j] = rand_double(low, high);
       sum += std::abs(A[i][j]);
     }
     // enforce strong diagonal predominance
@@ -47,13 +47,13 @@ std::tuple<matrix, matrix, vect, vect> init_rand(const unsigned int size,
 }
 
 
-float get_error(const vect &x0, const vect &x1, const unsigned int low, const unsigned int high)
+double error_comp(const vect &x0, const vect &x1, const unsigned int low, const unsigned int high)
 // Error is computed as maximum absolute difference between matching components in the stripe
 {
   auto x0_it = x0.cbegin() + low;
   const auto x0_end = x0.cbegin() + high;
   auto x1_it = x1.cbegin() + low;
-  float error = 0;
+  double error = 0;
   
   while (x0_it <= x0_end) {
     error = std::max(error, std::abs(*x1_it - *x0_it));
@@ -62,4 +62,35 @@ float get_error(const vect &x0, const vect &x1, const unsigned int low, const un
   }
   
   return error;
+}
+
+
+double error_sq(const vect &x0, const vect &x1)
+// Two-norm of difference between vectors
+{
+  auto x0_it = x0.cbegin();
+  auto x1_it = x1.cbegin();
+  double error = 0;
+  
+  while (x0_it <= x0.cend()) {
+    error += (*x0_it - *x1_it) * (*x0_it - *x1_it);
+    x0_it++;
+    x1_it++;
+  }
+  
+  return std::sqrt(error);
+}
+
+
+void print(const vect &x)
+{
+  for (auto it = x.cbegin(); it < x.cend(); it++)
+    std::cout << *it << " ";
+  std::cout << std::endl;  
+}
+
+
+void print(const matrix &x)
+{
+  for (auto it = x.cbegin(); it < x.cend(); it++) print(x);
 }

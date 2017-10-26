@@ -17,6 +17,23 @@ void barrier::stop_at()
   lock.unlock();
 }
 
+
+void barrier::stop_at(function<void()> f)
+{
+  unique_lock<mutex> lock(m_mutex);
+  unsigned int stop_gen = m_generation;
+  if (++m_waiting == m_size) {
+    f();
+    m_generation++;
+    m_waiting = 0;
+    m_cv.notify_all();
+  } else {
+    while(stop_gen == m_generation) m_cv.wait(lock);
+  }
+  lock.unlock();
+}
+
+
 void barrier::leave()
 {
   unique_lock<mutex> lock(m_mutex);

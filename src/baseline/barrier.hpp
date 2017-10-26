@@ -4,6 +4,7 @@
 using std::mutex;
 using std::condition_variable;
 using std::unique_lock;
+using std::function;
 
 class barrier
 {
@@ -15,5 +16,6 @@ class barrier
   public:
     barrier(const unsigned int size);
     void stop_at();
+    void stop_at(function<void()> f);
     void leave();
 };
