@@ -4,7 +4,7 @@
 
 #include <shared.hpp>
 
-#define ERROR_THRESH 1.0e-3
+#define ERROR_THRESH 1.0e-10
 
 using namespace std;
 
@@ -45,7 +45,7 @@ inline void jacobi_components(const unsigned int nworkers)
       x[parity][i] = tmp / A[i][i];
     }, nworkers);
     // check for convergence
-    if (get_error(x[0], x[1], 0, size-1) <= ERROR_THRESH) return;
+    if (error_comp(x[0], x[1], 0, size-1) <= ERROR_THRESH) return;
     antiparity = parity;
     parity = (parity + 1) % 2;
     iter++;
