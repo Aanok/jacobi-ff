@@ -5,23 +5,30 @@ RUN="$(dirname $(readlink -f $0))"
 RESULTS="$RUN/../tests/$DATE"
 BIN="${RUN%%run}bin"
 
-SIZE=10000
-NITER=100
-STEP=1
+SIZES=10000
+NITER=50
 
 # read args
 arch="$1"
 case "$arch" in
   "mic")
     maxthreads=100
+    step=10
     binsuff="$arch"
+    # prep work: copy data to mic
+    scp -r "$BIN" "mic1:"
+    scp -r "$RUN" "mic1:"
+    # prep work: setup results dir
+    ssh mic1 "mkdir -p tests/$DATE"
     ;;
   "xeon")
     maxthreads=30
+    step=1
     binsuff="$arch"
     ;;
   "i5")
     maxthreads=10
+    step=1
     binsuff="xeon"
     ;;
   ?*)
@@ -34,11 +41,25 @@ esac
 mkdir -p "$RESULTS"
 
 # run tests
-for test in "baseline" "blocks" "components"; do
-  # generate data
-  "$RUN/run.sh" "$BIN/${test}_${binsuff}" "$SIZE" "$NITER" "$maxthreads" "$STEP" "$RESULTS/${test}_${arch}.dat"
-  # draw plot
-  "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}.dat" "$RESULTS/${test}_${arch}.svg"
+for size in "1000" "5000" "10000" "15000"; do
+  for test in "baseline" "blocks" "components"; do
+    # generate data
+    if [ "$arch" == "mic" ]; then
+      # run test on mic, then copy back result
+      ssh mic1 "run/run.sh" "bin/${test}_${binsuff}" "$size" "$NITER" "$maxthreads" "$step" "tests/$DATE/${test}_${arch}_${size}.dat"
+      scp "mic1:tests/$DATE/${test}_${arch}_${size}.dat" "$RESULTS/${test}_${arch}_${size}.dat"
+    else
+      # run test locally
+      "$RUN/run.sh" "$BIN/${test}_${binsuff}" "$size" "$NITER" "$maxthreads" "$step" "$RESULTS/${test}_${arch}_${size}.dat"
+    fi
+    # draw plot
+    "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}_${size}.dat" "$RESULTS/${test}_${arch}_${size}.svg"
+  done
 done
+
+# if running on mic, clean up
+if [ "$arch" == "mic" ]; then
+  ssh mic1 rm -rf "$RUN" "$BIN" "tests/$DATE"
+fi
 
 touch "$RUN/../DONE"
