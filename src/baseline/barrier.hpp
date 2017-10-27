@@ -18,4 +18,5 @@ class barrier
     void stop_at();
     void stop_at(function<void()> f);
     void leave();
+    void leave(function<void()> f);
 };

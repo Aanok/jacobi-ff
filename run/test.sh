@@ -5,8 +5,7 @@ RUN="$(dirname $(readlink -f $0))"
 RESULTS="$RUN/../tests/$DATE"
 BIN="${RUN%%run}bin"
 
-SIZES=10000
-NITER=50
+MAXITER=50
 
 # read args
 arch="$1"
@@ -22,7 +21,7 @@ case "$arch" in
     ssh mic1 "mkdir -p tests/$DATE"
     ;;
   "xeon")
-    maxthreads=30
+    maxthreads=20
     step=1
     binsuff="$arch"
     ;;
@@ -42,15 +41,15 @@ mkdir -p "$RESULTS"
 
 # run tests
 for size in "1000" "5000" "10000" "15000"; do
-  for test in "baseline" "blocks" "components"; do
+  for test in "baseline" "components" "blocks"; do
     # generate data
     if [ "$arch" == "mic" ]; then
       # run test on mic, then copy back result
-      ssh mic1 "run/run.sh" "bin/${test}_${binsuff}" "$size" "$NITER" "$maxthreads" "$step" "tests/$DATE/${test}_${arch}_${size}.dat"
+      ssh mic1 "run/run.sh" "bin/${test}_${binsuff}" "$size" "$MAXITER" "$maxthreads" "$step" "tests/$DATE/${test}_${arch}_${size}.dat"
       scp "mic1:tests/$DATE/${test}_${arch}_${size}.dat" "$RESULTS/${test}_${arch}_${size}.dat"
     else
       # run test locally
-      "$RUN/run.sh" "$BIN/${test}_${binsuff}" "$size" "$NITER" "$maxthreads" "$step" "$RESULTS/${test}_${arch}_${size}.dat"
+      "$RUN/run.sh" "$BIN/${test}_${binsuff}" "$size" "$MAXITER" "$maxthreads" "$step" "$RESULTS/${test}_${arch}_${size}.dat"
     fi
     # draw plot
     "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}_${size}.dat" "$RESULTS/${test}_${arch}_${size}.svg"

@@ -44,3 +44,16 @@ void barrier::leave()
   }
   lock.unlock();
 }
+
+
+void barrier::leave(function<void()> f)
+{
+  unique_lock<mutex> lock(m_mutex);
+  if (--m_size == m_waiting) {
+    f();
+    m_generation++;
+    m_waiting = 0;
+    m_cv.notify_all();
+  }
+  lock.unlock();
+}

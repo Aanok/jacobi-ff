@@ -4,8 +4,6 @@
 
 #include <shared.hpp>
 
-#define ERROR_THRESH 1.0e-10
-
 using namespace std;
 
 
@@ -16,38 +14,32 @@ since accesses to A[i][j]'s happen row-wise for a fixed x[i]. it would likely be
 so i'm not doing it. make sure to note it in the report. */
 
 
-matrix A; // NB this doesn't affect performance because the computation maps independently to rows
-vect sol;
-matrix x;
-vect b;
-unsigned int size, max_iter;
-
-
-inline void jacobi_components(const unsigned int nworkers)
+inline void jacobi_components(const matrix &A,
+                              matrix &x,
+                              const vect &b,
+                              const unsigned int size,
+                              const unsigned int max_iter,
+                              const unsigned int nworkers)
 {
   unsigned int iter = 0;
   unsigned int parity = 1;
   unsigned int antiparity = 0;
   long j;
   float tmp;
-  ff::ParallelFor pr(nworkers, false);
+  ff::ParallelFor pf(nworkers, false);
   
 #ifdef _MIC
   // passive scheduling should be faster on manycore architectures
   pr.disableScheduler();
 #endif
-  while (iter <= max_iter) {
-    pr.parallel_for_static(0, size, 1, 0, [&](const long i) {
-      // formula: x_i = (1/A_ii)*(b_i - sum(j=0..i-1,i+1..size-1, A_ij*x_j))
-      tmp = b[i];
-      for (j = 0; j < i; j++) tmp -= A[i][j] * x[antiparity][j];
-      for (j = i+1; j < size; j++) tmp -= A[i][j] * x[antiparity][j];
-      x[parity][i] = tmp / A[i][i];
+  while (iter < max_iter) {
+    pf.parallel_for_idx(0, size, 1, size/(nworkers*nworkers), [&](const long start, const long stop, const long thid) {
+      iterate_stripe(A, ref(x[antiparity]), ref(x[parity]), b, start, stop-1, size);
     }, nworkers);
     // check for convergence
-    if (error_comp(x[0], x[1], 0, size-1) <= ERROR_THRESH) return;
-    antiparity = parity;
+    if (error_sq(ref(x[0]), ref(x[1])) < ERROR_THRESH) return;
     parity = (parity + 1) % 2;
+    antiparity = (parity + 1) % 2;
     iter++;
   }
 }
@@ -55,7 +47,9 @@ inline void jacobi_components(const unsigned int nworkers)
 
 int main(int argc, char* argv[])
 {
-  unsigned int nworkers;
+  matrix A, x;
+  vect b, sol;
+  unsigned int nworkers, size, max_iter;
   chrono::time_point<chrono::high_resolution_clock> start, end;
   chrono::duration<float> t_proc;
   
@@ -73,7 +67,7 @@ int main(int argc, char* argv[])
   
   // time and run algorithm
   start = chrono::high_resolution_clock::now();
-  jacobi_components(nworkers);
+  jacobi_components(ref(A), ref(x), ref(b), size, max_iter, nworkers);
   end = chrono::high_resolution_clock::now();
   t_proc = end - start;
   

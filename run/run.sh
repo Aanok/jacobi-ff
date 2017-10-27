@@ -8,6 +8,12 @@ maxthreads=$4
 step=$5
 outfile=$6
 
+if [ "$step" == "1" ]; then
+  start=2
+else
+  start="$step"
+fi
+
 # average each measurement over a sample size
 SAMPLE=3
 
@@ -32,7 +38,7 @@ SEQTIME=$(run_sample 1)
 printf "done: %s\n" "$SEQTIME"
 echo 1 1 $SEQTIME >> "$outfile"
 
-for ((NTHREAD=step; NTHREAD <= maxthreads; NTHREAD+=step)); do
+for ((NTHREAD=start; NTHREAD <= maxthreads; NTHREAD+=step)); do
   printf "$program $size $niter $NTHREAD... "
   PARTIME=$(run_sample $NTHREAD)
   printf "done: %s\n" "$PARTIME"
