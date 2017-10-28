@@ -40,9 +40,6 @@ inline void jacobi_components(const matrix &A,
     if (error_sq(ref(x[0]), ref(x[1])) < ERROR_THRESH) return;
     parity = (parity + 1) % 2;
     iter++;
-    //print(ref(x[0]));
-    //print(ref(x[1]));
-    cerr << iter << endl;
   }
 }
 
