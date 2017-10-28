@@ -40,8 +40,8 @@ esac
 mkdir -p "$RESULTS"
 
 # run tests
-for size in "1000" "5000" "10000" "15000"; do
-  for test in "baseline" "components" "blocks"; do
+for size in "1000" "5000" "10000"; do
+  for test in "baseline" "components"; do
     # generate data
     if [ "$arch" == "mic" ]; then
       # run test on mic, then copy back result
@@ -52,7 +52,7 @@ for size in "1000" "5000" "10000" "15000"; do
       "$RUN/run.sh" "$BIN/${test}_${binsuff}" "$size" "$MAXITER" "$maxthreads" "$step" "$RESULTS/${test}_${arch}_${size}.dat"
     fi
     # draw plot
-    "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}_${size}.dat" "$RESULTS/${test}_${arch}_${size}.svg"
+    "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}" "$RESULTS/${test}_${arch}.svg"
   done
 done
 
