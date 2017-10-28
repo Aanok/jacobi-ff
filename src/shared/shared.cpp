@@ -6,17 +6,22 @@ inline double rand_double(const int low, const int high)
 }
 
 
-std::tuple<matrix, matrix, vect, vect> init_rand(const unsigned int size,
-                                                 const unsigned int low,
-                                                 const unsigned int high)
+std::tuple<matrix, matrix, vect, vect> init_rand(const long size,
+                                                 const long low,
+                                                 const long high,
+                                                 const bool time_seed)
 {
-  unsigned int i, j;
+  long i, j;
   double sum;
   matrix A(size, vect(size));
   matrix x(2, vect(size));
   vect sol(size);
   vect b(size);
   
+  // seed RNG
+  std::srand(time_seed ? std::time(0) : 42);
+  
+  // fill data
   for (i = 0; i < size; i++) {
     x[0][i] = rand_double(low, high);
     sol[i] = rand_double(low, high);
@@ -53,7 +58,7 @@ void iterate_stripe(const matrix &A,
                     const vect &b,
                     const long low,
                     const long high,
-                    const unsigned int size)
+                    const long size)
 {
   long i, j;
   double tmp;
@@ -67,7 +72,7 @@ void iterate_stripe(const matrix &A,
 }
 
 
-double error_comp(const vect &x0, const vect &x1, const unsigned int low, const unsigned int high)
+double error_comp(const vect &x0, const vect &x1, const long low, const long high)
 // Error is computed as maximum absolute difference between matching components in the stripe
 {
   auto x0_it = x0.cbegin() + low;
@@ -106,11 +111,11 @@ void print(const vect &x)
 {
   for (auto it = x.cbegin(); it < x.cend(); it++)
     std::cout << *it << " ";
-  std::cout << std::endl;  
+  std::cout << std::endl;
 }
 
 
 void print(const matrix &x)
 {
-  for (auto it = x.cbegin(); it < x.cend(); it++) print(x);
+  for (auto it = x.cbegin(); it < x.cend(); it++) print(*it);
 }

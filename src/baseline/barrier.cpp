@@ -1,12 +1,12 @@
 #include "barrier.hpp"
 
-barrier::barrier(const unsigned int size)
+barrier::barrier(const long size)
   : m_mutex(), m_cv(), m_waiting(0), m_size(size), m_generation(0) { }
 
 void barrier::stop_at()
 {
   unique_lock<mutex> lock(m_mutex);
-  unsigned int stop_gen = m_generation;
+  long stop_gen = m_generation;
   if (++m_waiting == m_size) {
     m_generation++;
     m_waiting = 0;
@@ -21,7 +21,7 @@ void barrier::stop_at()
 void barrier::stop_at(function<void()> f)
 {
   unique_lock<mutex> lock(m_mutex);
-  unsigned int stop_gen = m_generation;
+  long stop_gen = m_generation;
   if (++m_waiting == m_size) {
     f();
     m_generation++;
@@ -34,7 +34,7 @@ void barrier::stop_at(function<void()> f)
 }
 
 
-void barrier::leave()
+void barrier::unsubscribe()
 {
   unique_lock<mutex> lock(m_mutex);
   if (--m_size == m_waiting) {
@@ -46,7 +46,7 @@ void barrier::leave()
 }
 
 
-void barrier::leave(function<void()> f)
+void barrier::unsubscribe(function<void()> f)
 {
   unique_lock<mutex> lock(m_mutex);
   if (--m_size == m_waiting) {

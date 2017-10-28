@@ -17,30 +17,32 @@ so i'm not doing it. make sure to note it in the report. */
 inline void jacobi_components(const matrix &A,
                               matrix &x,
                               const vect &b,
-                              const unsigned int size,
-                              const unsigned int max_iter,
-                              const unsigned int nworkers)
+                              const long size,
+                              const long max_iter,
+                              const long nworkers)
 {
-  unsigned int iter = 0;
-  unsigned int parity = 1;
-  unsigned int antiparity = 0;
+  long iter = 0;
+  long parity = 1;
+  long antiparity = 0;
   long j;
   float tmp;
-  ff::ParallelFor pf(nworkers, false);
+  ff::ParallelFor pf(nworkers, true, true);
   
 #ifdef _MIC
-  // passive scheduling should be faster on manycore architectures
-  pr.disableScheduler();
+  // passive scheduling is faster with many cores
+  pf.disableScheduler();
 #endif
   while (iter < max_iter) {
-    pf.parallel_for_idx(0, size, 1, size/(nworkers*nworkers), [&](const long start, const long stop, const long thid) {
-      iterate_stripe(A, ref(x[antiparity]), ref(x[parity]), b, start, stop-1, size);
+    pf.parallel_for_idx(0, size, 1, 5, [&](const long start, const long stop, const long thid) {
+      iterate_stripe(A, ref(x[(parity + 1) % 2]), ref(x[parity]), b, start, stop-1, size);
     }, nworkers);
     // check for convergence
     if (error_sq(ref(x[0]), ref(x[1])) < ERROR_THRESH) return;
     parity = (parity + 1) % 2;
-    antiparity = (parity + 1) % 2;
     iter++;
+    //print(ref(x[0]));
+    //print(ref(x[1]));
+    cerr << iter << endl;
   }
 }
 
@@ -49,7 +51,7 @@ int main(int argc, char* argv[])
 {
   matrix A, x;
   vect b, sol;
-  unsigned int nworkers, size, max_iter;
+  long nworkers, size, max_iter;
   chrono::time_point<chrono::high_resolution_clock> start, end;
   chrono::duration<float> t_proc;
   
@@ -61,9 +63,9 @@ int main(int argc, char* argv[])
   size = stoi(argv[1]);
   max_iter = stoi(argv[2]);
   nworkers = stoi(argv[3]);
-  
-  // init to random instance
-  tie(A, x, sol, b) = init_rand(size, -10, 10);
+
+  // init random instance
+  tie(A, x, b, sol) = init_rand(size, -10, 10);
   
   // time and run algorithm
   start = chrono::high_resolution_clock::now();
