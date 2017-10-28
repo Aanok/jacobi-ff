@@ -25,10 +25,10 @@ void task(const matrix &A,
   
   while (iter < max_iter && *error > ERROR_THRESH) {
     // each iteration goes over the assigned values in the stripe
-    iterate_stripe(A, ref(x[(parity + 1) % 2]), ref(x[parity]), b, low, high, size);
+    iterate_stripe(cref(A), cref(x[(parity + 1) % 2]), ref(x[parity]), cref(b), low, high, size);
     // sync with barrier; last thread also triggers error update
     jacobi_barrier->stop_at([&] {
-      *error = error_sq(ref(x[0]), ref(x[1]));
+      *error = error_sq(cref(x[0]), cref(x[1]));
     });
     // bookkeep
     parity = (parity + 1) % 2;
@@ -52,9 +52,9 @@ inline void jacobi_baseline(const matrix &A,
   
   // spawn first nworkers-1 threads
   for (i = 0; i < nworkers-1; i++) tt.push_back(thread(task,
-                                                       ref(A),
+                                                       cref(A),
                                                        ref(x),
-                                                       ref(b),
+                                                       cref(b),
                                                        &error,
                                                        i*stripe,
                                                        (i+1)*stripe -1,
@@ -63,9 +63,9 @@ inline void jacobi_baseline(const matrix &A,
                                                        jacobi_barrier));
   // last thread works on its stripe and on the remainder up to the end of the instance
   tt.push_back(thread(task,
-                      ref(A),
+                      cref(A),
                       ref(x),
-                      ref(b),
+                      cref(b),
                       &error,
                       (nworkers-1)*stripe,
                       size-1,
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
   
   // time and run algorithm
   start = chrono::high_resolution_clock::now();
-  jacobi_baseline(ref(A), ref(x), ref(b), size, max_iter, nworkers, stripe, jacobi_barrier); 
+  jacobi_baseline(cref(A), ref(x), cref(b), size, max_iter, nworkers, stripe, jacobi_barrier); 
   end = chrono::high_resolution_clock::now();
   t_proc = end - start;
   

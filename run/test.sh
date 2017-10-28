@@ -39,21 +39,28 @@ esac
 # create results folder
 mkdir -p "$RESULTS"
 
+# tests to run
+tests=("baseline" "components")
+
 # run tests
 for size in "1000" "5000" "10000"; do
-  for test in "baseline" "components"; do
+  for test in "${tests[@]}"; do
     # generate data
     if [ "$arch" == "mic" ]; then
       # run test on mic, then copy back result
-      ssh mic1 "run/run.sh" "bin/${test}_${binsuff}" "$size" "$MAXITER" "$maxthreads" "$step" "tests/$DATE/${test}_${arch}_${size}.dat"
+      ssh mic1 "run/run.sh" "bin/sequential_${binsuff}" "bin/${test}_${binsuff}" "$size" "$MAXITER" "$maxthreads" "$step" "tests/$DATE/${test}_${arch}_${size}.dat"
       scp "mic1:tests/$DATE/${test}_${arch}_${size}.dat" "$RESULTS/${test}_${arch}_${size}.dat"
     else
       # run test locally
-      "$RUN/run.sh" "$BIN/${test}_${binsuff}" "$size" "$MAXITER" "$maxthreads" "$step" "$RESULTS/${test}_${arch}_${size}.dat"
+      "$RUN/run.sh" "$BIN/sequential_${binsuff}" "$BIN/${test}_${binsuff}" "$size" "$MAXITER" "$maxthreads" "$step" "$RESULTS/${test}_${arch}_${size}.dat"
     fi
-    # draw plot
-    "$RUN/gnuplot.sh" "$RESULTS/${test}_${arch}" "$RESULTS/${test}_${arch}.svg"
   done
+done
+
+# draw plots
+for test in "${tests[@]}"; do
+  "$RUN/gnuplot_speedup.sh" "$RESULTS/${test}_${arch}" "$RESULTS/${test}_${arch}_speedup.svg"
+  "$RUN/gnuplot_times.sh" "$RESULTS/${test}_${arch}" "$RESULTS/${test}_${arch}_times.svg"
 done
 
 # if running on mic, clean up

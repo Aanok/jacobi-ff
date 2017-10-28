@@ -1,48 +1,53 @@
 #!/bin/bash
 
-# read args
-program=$1
-size=$2
-niter=$3
-maxthreads=$4
-step=$5
-outfile=$6
-
-if [ "$step" == "1" ]; then
-  start=2
-else
-  start="$step"
-fi
-
 # average each measurement over a sample size
-SAMPLE=3
+SAMPLE=5
 
 # function for average measure
-function run_sample() { # ARG: nthread
+function run_sample() { # ARGS: program nthread
   local time=0;
   local tmp=0;
   for ((S = 1; S <= $SAMPLE; S++)); do
-    tmp=$("$program" "$size" "$niter" "$1")
+    tmp=$("$1" "$size" "$niter" "$2")
     time=$(awk "BEGIN {printf \"%f\",${time}+${tmp}}")
   done
   awk "BEGIN {printf \"%f\",${time}/${SAMPLE}}"
 }
 
 
+# read args
+program_seq="$1"
+program_par="$2"
+size="$3"
+niter="$4"
+maxthreads="$5"
+step="$6"
+outfile="$7"
+
 # put header on output file
-echo "#threads performance time" >> "$outfile"
+echo "#threads speedup time" >> "$outfile"
 
 # run sequentially and set aside
-printf "$program $size $niter 1... "
-SEQTIME=$(run_sample 1)
+printf "$program_seq $size $niter... "
+SEQTIME=$(run_sample "$program_seq" 1)
 printf "done: %s\n" "$SEQTIME"
-echo 1 1 $SEQTIME >> "$outfile"
+echo "# Sequential execution time: $SEQTIME" >> "$outfile"
+
+# run in parallel
+# program with 1 thread is always run
+printf "$program_par $size $niter 1... "
+PARTIME=$(run_sample "$program_par" "1")
+printf "done: %s\n" "$PARTIME"
+PERF=$(awk "BEGIN {printf \"%f\",${SEQTIME}/${PARTIME}}")
+echo $NTHREAD $PERF $PARTIME >> "$outfile"
+
+# then if $step >1 we don't go to 1+$step but just $step
+if [ "$step" == "1" ]; then start=2; else start="$step"; fi
 
 for ((NTHREAD=start; NTHREAD <= maxthreads; NTHREAD+=step)); do
-  printf "$program $size $niter $NTHREAD... "
-  PARTIME=$(run_sample $NTHREAD)
+  printf "$program_par $size $niter $NTHREAD... "
+  PARTIME=$(run_sample "$program_par" $NTHREAD)
   printf "done: %s\n" "$PARTIME"
   PERF=$(awk "BEGIN {printf \"%f\",${SEQTIME}/${PARTIME}}")
   echo $NTHREAD $PERF $PARTIME >> "$outfile"
 done
-

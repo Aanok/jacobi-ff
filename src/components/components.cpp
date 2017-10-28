@@ -34,10 +34,10 @@ inline void jacobi_components(const matrix &A,
 #endif
   while (iter < max_iter) {
     pf.parallel_for_idx(0, size, 1, 5, [&](const long start, const long stop, const long thid) {
-      iterate_stripe(A, ref(x[(parity + 1) % 2]), ref(x[parity]), b, start, stop-1, size);
+      iterate_stripe(cref(A), cref(x[(parity + 1) % 2]), ref(x[parity]), cref(b), start, stop-1, size);
     }, nworkers);
     // check for convergence
-    if (error_sq(ref(x[0]), ref(x[1])) < ERROR_THRESH) return;
+    if (error_sq(cref(x[0]), cref(x[1])) < ERROR_THRESH) return;
     parity = (parity + 1) % 2;
     iter++;
   }
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
   
   // time and run algorithm
   start = chrono::high_resolution_clock::now();
-  jacobi_components(ref(A), ref(x), ref(b), size, max_iter, nworkers);
+  jacobi_components(cref(A), ref(x), cref(b), size, max_iter, nworkers);
   end = chrono::high_resolution_clock::now();
   t_proc = end - start;
   
