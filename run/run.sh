@@ -39,7 +39,7 @@ printf "$program_par $size $niter 1... "
 PARTIME=$(run_sample "$program_par" "1")
 printf "done: %s\n" "$PARTIME"
 PERF=$(awk "BEGIN {printf \"%f\",${SEQTIME}/${PARTIME}}")
-echo $NTHREAD $PERF $PARTIME >> "$outfile"
+echo 1 $PERF $PARTIME >> "$outfile"
 
 # then if $step >1 we don't go to 1+$step but just $step
 if [ "$step" == "1" ]; then start=2; else start="$step"; fi
