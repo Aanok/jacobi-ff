@@ -31,7 +31,6 @@ struct jacobi_node: ff_node_t<jacobi_task > {
     : m_A(cref(A)), m_x(ref(x)), m_b(cref(b)), m_size(size) { }
   
   jacobi_task* svc(jacobi_task *task) {
-    //cerr << "iterating on stripe (" << task->m_low << "," << task->m_high << "), parity: " << task->m_parity << endl;
     iterate_stripe(cref(m_A), m_x[(task->m_parity + 1) % 2], m_x[task->m_parity], cref(m_b), task->m_low, task->m_high, m_size);
     return task;
   }
@@ -55,10 +54,8 @@ struct jacobi_collector: ff_node_t<jacobi_task > {
     if (++m_collected >= m_tasks) {
       // workers are done for the current iteration: time for a convergence check
       m_collected = 0;
-      //print(cref(m_x));
       if (++m_iter >= m_max_iter || error_sq(cref(m_x[0]), cref(m_x[1])) < ERROR_THRESH) {
         // done: kill everything
-        cerr << m_iter << endl;
         delete task;
         return EOS;
       }
