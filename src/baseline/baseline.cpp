@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
   nworkers = stoi(argv[3]);
   
   // init to random instance
-  tie(A, x, sol, b) = init_rand(size, -10, 10);
+  tie(A, x, sol, b) = init_rand(size, -10, 10, false);
   jacobi_barrier = new barrier(nworkers);
   
   stripe = size / nworkers;

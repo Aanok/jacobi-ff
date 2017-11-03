@@ -28,6 +28,7 @@ void jacobi_sequential(const matrix &A,
     parity = (parity + 1) % 2;
     iter++;
   }
+  cerr << iter << endl;
 }
 
 
@@ -48,7 +49,7 @@ int main(int argc, char* argv[])
   max_iter = stoi(argv[2]);
   
   // init to random instance
-  tie(A, x, sol, b) = init_rand(size, -10, 10);
+  tie(A, x, sol, b) = init_rand(size, -10, 10, false);
   
   // time and run algorithm
   start = chrono::high_resolution_clock::now();

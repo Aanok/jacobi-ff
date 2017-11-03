@@ -6,7 +6,7 @@
 #include <iostream>
 
 // universal test parameters
-#define ERROR_THRESH 1.0e-10
+#define ERROR_THRESH 1.0e-6
 
 // custom types
 typedef std::vector<double> vect;
