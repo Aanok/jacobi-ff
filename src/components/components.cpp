@@ -5,6 +5,8 @@
 
 #include <shared.hpp>
 
+#define GRAIN 5
+
 using namespace std;
 using ff::ff_node_t;
 using ff::ff_node;
@@ -16,14 +18,21 @@ you could also do a parallelForReduce to compute x[i]; but this would fuck up ca
 since accesses to A[i][j]'s happen row-wise for a fixed x[i]. it would likely be slower.
 so i'm not doing it. make sure to note it in the report. */
 
-
-struct jacobi_node: ff_node_t<pair<long,long> > {
-  jacobi_node(const matrix &A, matrix &x, const vect &b, const long size)
-    : m_A(cref(A)), m_x(ref(x)), m_b(cref(b)), m_size(size), m_parity(1) { }
+struct jacobi_task {
+  jacobi_task(const long parity, const long low, const long high)
+  : m_parity(parity), m_low(low), m_high(high) { }
   
-  pair<long,long>* svc(pair<long,long> *task) {
-    iterate_stripe(cref(m_A), cref(m_x[(m_parity + 1) % 2]), ref(m_x[m_parity]), cref(m_b), task->first, task->second, m_size);
-    m_parity = (m_parity + 1) % 2;
+  const long m_parity, m_low, m_high;
+};
+
+
+struct jacobi_node: ff_node_t<jacobi_task > {
+  jacobi_node(const matrix &A, matrix &x, const vect &b, const long size)
+    : m_A(cref(A)), m_x(ref(x)), m_b(cref(b)), m_size(size) { }
+  
+  jacobi_task* svc(jacobi_task *task) {
+    //cerr << "iterating on stripe (" << task->m_low << "," << task->m_high << "), parity: " << task->m_parity << endl;
+    iterate_stripe(cref(m_A), m_x[(task->m_parity + 1) % 2], m_x[task->m_parity], cref(m_b), task->m_low, task->m_high, m_size);
     return task;
   }
   
@@ -31,21 +40,25 @@ struct jacobi_node: ff_node_t<pair<long,long> > {
   matrix &m_x;
   const vect &m_b;
   const long m_size;
-  long m_parity;
 };
 
 
-struct jacobi_collector: ff_node_t<pair<long,long> > {
-  jacobi_collector(const matrix &x, const long max_iter, const long nworkers)
-    : m_x(cref(x)), m_max_iter(max_iter), m_iter(0), m_nworkers(nworkers), m_collected(0) { }
+struct jacobi_collector: ff_node_t<jacobi_task > {
+  jacobi_collector(const matrix &x, const long max_iter, const long size, const long grain)
+    : m_x(cref(x)),
+      m_max_iter(max_iter),
+      m_iter(0),
+      m_collected(0),
+      m_tasks(size / grain + (size % grain != 0)) { }
    
-  pair<long,long>* svc(pair<long,long> *task) {
-    if (++m_collected >= m_nworkers - 1) {
+  jacobi_task* svc(jacobi_task *task) {
+    if (++m_collected >= m_tasks) {
       // workers are done for the current iteration: time for a convergence check
       m_collected = 0;
+      //print(cref(m_x));
       if (++m_iter >= m_max_iter || error_sq(cref(m_x[0]), cref(m_x[1])) < ERROR_THRESH) {
         // done: kill everything
-        cerr << m_iter - 1 << endl;
+        cerr << m_iter << endl;
         delete task;
         return EOS;
       }
@@ -58,25 +71,32 @@ struct jacobi_collector: ff_node_t<pair<long,long> > {
   }
   
   const matrix &m_x;
-  const long m_max_iter, m_nworkers;
+  const long m_max_iter, m_tasks;
   long m_iter, m_collected;
 };
 
 
-struct jacobi_emitter: ff_node_t<pair<long,long> > {
-  jacobi_emitter(const long nworkers, const long size)
-    : m_nworkers(nworkers), m_size(size) { }
+struct jacobi_emitter: ff_node_t<jacobi_task > {
+  jacobi_emitter(const long grain, const long size)
+    : m_grain(grain), m_size(size), m_parity(1) { }
   
-  pair<long,long>* svc(pair<long,long> *task) {
+  jacobi_task* svc(jacobi_task *task) {
     long i;
-    long stripe = m_size / m_nworkers;
     
-    for (i = 0; i < m_nworkers - 1; i++) ff_send_out(new pair<long,long>(i*stripe,(i+1)*stripe -1));
-    ff_send_out(new pair<long,long>((m_nworkers-1)*stripe,m_size-1));
+    // prevent memory leaks from wrap_around
+    if (task != nullptr) delete task;
+    
+    // generate bulk of tasks
+    for (i = 0; i < m_size/m_grain; i++) ff_send_out(new jacobi_task(m_parity, i*m_grain, (i+1)*m_grain -1));
+    // take care of remainder, if any
+    if (m_size % m_grain != 0) ff_send_out(new jacobi_task(m_parity, (m_size/m_grain)*m_grain, m_size-1));
+    
+    m_parity = (m_parity + 1) % 2;
     return GO_ON;
   }
   
-  const long m_nworkers, m_size;
+  const long m_grain, m_size;
+  long m_parity;
 };
 
 inline void jacobi_components(const matrix &A,
@@ -90,9 +110,9 @@ inline void jacobi_components(const matrix &A,
   for (int i = 0; i < nworkers; i++)
     workers.push_back(unique_ptr<jacobi_node>(new jacobi_node(cref(A), ref(x), cref(b), size)));
   
-  ff_Farm<pair<long,long> > jacobi_farm(move(workers),
-                                        unique_ptr<jacobi_emitter>(new jacobi_emitter(nworkers, size)),
-                                        unique_ptr<jacobi_collector>(new jacobi_collector(cref(x), max_iter, nworkers)));
+  ff_Farm<jacobi_task> jacobi_farm(move(workers),
+                                   unique_ptr<jacobi_emitter>(new jacobi_emitter(GRAIN, size)),
+                                   unique_ptr<jacobi_collector>(new jacobi_collector(cref(x), max_iter, size, GRAIN)));
   
   jacobi_farm.wrap_around();
   jacobi_farm.run_and_wait_end();
