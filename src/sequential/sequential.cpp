@@ -28,7 +28,6 @@ void jacobi_sequential(const matrix &A,
     parity = (parity + 1) % 2;
     iter++;
   }
-  cerr << iter << endl;
 }
 
 
