@@ -1,6 +1,6 @@
 CC := icc
 CFLAGS := -O3 -std=c++11 -pthread -I src/shared
-REPORT := -qopt-report -qopt-report-phase=vec -qopt-report -qopt-report-phase=par
+REPORT = -qopt-report -qopt-report-phase=vec -qopt-report -qopt-report-phase=par -qopt-report-file=bin/$@.optrpt
 MICFLAGS := -mmic -D_MIC
 FFDIR := /home/spm1501/fastflow
 FF = -I $(FFDIR) -DNO_DEFAULT_MAPPING

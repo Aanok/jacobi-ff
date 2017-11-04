@@ -5,8 +5,6 @@
 
 #include <shared.hpp>
 
-#define GRAIN 5
-
 using namespace std;
 using ff::ff_node_t;
 using ff::ff_node;
@@ -103,13 +101,15 @@ inline void jacobi_components(const matrix &A,
                               const long max_iter,
                               const long nworkers)
 {
+  long grain = size/1000;
   vector<unique_ptr<ff_node> > workers;
+  
   for (int i = 0; i < nworkers; i++)
     workers.push_back(unique_ptr<jacobi_node>(new jacobi_node(cref(A), ref(x), cref(b), size)));
   
   ff_Farm<jacobi_task> jacobi_farm(move(workers),
-                                   unique_ptr<jacobi_emitter>(new jacobi_emitter(GRAIN, size)),
-                                   unique_ptr<jacobi_collector>(new jacobi_collector(cref(x), max_iter, size, GRAIN)));
+                                   unique_ptr<jacobi_emitter>(new jacobi_emitter(grain, size)),
+                                   unique_ptr<jacobi_collector>(new jacobi_collector(cref(x), max_iter, size, grain)));
   
   jacobi_farm.wrap_around();
   jacobi_farm.run_and_wait_end();
