@@ -1,12 +1,12 @@
+FFDIR := /home/spm1501/fastflow
 CC := icc
 CFLAGS := -O3 -std=c++11 -pthread -I src/shared
 REPORT = -qopt-report -qopt-report-phase=vec -qopt-report -qopt-report-phase=par -qopt-report-file=bin/$@.optrpt
 MICFLAGS := -mmic -D_MIC
-FFDIR := /home/spm1501/fastflow
 FF = -I $(FFDIR) -DNO_DEFAULT_MAPPING
 .PHONY: \
 	build build_xeon build_mic bin\
-	testmic testxeon testi5
+	test_mic test_xeon test_i5
 
 
 build : build_xeon build_mic
@@ -27,7 +27,7 @@ components_xeon : src/shared/shared.cpp src/components/components.cpp bin
 sequential_xeon : src/shared/shared.cpp src/sequential/sequential.cpp bin
 	$(CC) $(CFLAGS) $(REPORT) $(subst bin,, $^) -o bin/$@
 
-testxeon : build_xeon
+test_xeon : build_xeon
 	run/test.sh xeon
 
 	
@@ -42,19 +42,19 @@ components_mic : src/shared/shared.cpp src/components/components.cpp bin
 sequential_mic : src/shared/shared.cpp src/sequential/sequential.cpp bin
 	$(CC) $(CFLAGS) $(REPORT) $(MICFLAGS) $(subst bin,, $^) -o bin/$@
 	
-testmic : build_mic
+test_mic : build_mic
 	run/test.sh mic
 	
 	
-testi5 : build_xeon
+test_i5 : build_xeon
 	run/test.sh i5
 
 	
-cleanresults :
+clean_results :
 	rm -rf tests DONE
 
-cleanbinaries :
+clean_binaries :
 	rm -rf bin
 
-clean : cleanbinaries cleanresults
+clean : clean_binaries clean_results
 

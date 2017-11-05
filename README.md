@@ -6,8 +6,6 @@ FastFlow and C++11 implementations of Jacobi iterative method for linear systems
 
 `make testxeon` will start a test run on the local Xeon E5.
 
-Both will automatically build the necessary binaries.
-
 Test runs will build all necessary binaries, gather data and automatically generate plots in the `tests` subfolder.
 
 All binaries can be run manually with a syntax like `program size max_iterations nworkers`.

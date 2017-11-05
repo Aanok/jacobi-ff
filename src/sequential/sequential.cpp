@@ -18,13 +18,15 @@ void jacobi_sequential(const matrix &A,
 {
   long iter = 0;
   long parity = 1;
+  long antiparity = 0;
   double error = ERROR_THRESH + 1.0;
   
   while (iter < max_iter && error > ERROR_THRESH) {
     // here the whole matrix is a monolithic stripe
-    iterate_stripe(cref(A), cref(x[(parity + 1) % 2]), ref(x[parity]), cref(b), 0, size-1, size);
+    iterate_stripe(cref(A), cref(x[antiparity]), ref(x[parity]), cref(b), 0, size-1, size);
     error = error_sq(cref(x[0]), cref(x[1]));
     // bookkeep
+    antiparity = parity;
     parity = (parity + 1) % 2;
     iter++;
   }
