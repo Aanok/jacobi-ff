@@ -10,11 +10,6 @@ using ff::ff_node_t;
 using ff::ff_node;
 using ff::ff_Farm;
 
-/* to be rigorous about it it would warrant testing it out, but:
-you could think of doing a parrallelFor over the components and then within each iteration
-you could also do a parallelForReduce to compute x[i]; but this would fuck up cache locality,
-since accesses to A[i][j]'s happen row-wise for a fixed x[i]. it would likely be slower.
-so i'm not doing it. make sure to note it in the report. */
 
 struct jacobi_task {
   jacobi_task(const long parity, const long low, const long high)

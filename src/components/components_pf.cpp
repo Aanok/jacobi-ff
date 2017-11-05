@@ -7,13 +7,6 @@
 using namespace std;
 
 
-/* to be rigorous about it it would warrant testing it out, but:
-you could think of doing a parrallelFor over the components and then within each iteration
-you could also do a parallelForReduce to compute x[i]; but this would fuck up cache locality,
-since accesses to A[i][j]'s happen row-wise for a fixed x[i]. it would likely be slower.
-so i'm not doing it. make sure to note it in the report. */
-
-
 inline void jacobi_components(const matrix &A,
                               matrix &x,
                               const vect &b,
@@ -24,20 +17,19 @@ inline void jacobi_components(const matrix &A,
   long iter = 0;
   long parity = 1;
   long antiparity = 0;
-  long j;
-  float tmp;
-  ff::ParallelFor pf(nworkers, true, true);
+  ff::ParallelFor pf(nworkers);
   
 #ifdef _MIC
   // passive scheduling is faster with many cores
   pf.disableScheduler();
 #endif
   while (iter < max_iter) {
-    pf.parallel_for_idx(0, size, 1, 5, [&](const long start, const long stop, const long thid) {
-      iterate_stripe(cref(A), cref(x[(parity + 1) % 2]), ref(x[parity]), cref(b), start, stop-1, size);
+    pf.parallel_for(0, size, 1, 5, [&](const long i) {
+      iterate_stripe(cref(A), cref(x[antiparity]), ref(x[parity]), cref(b), i, i, size);
     }, nworkers);
     // check for convergence
     if (error_sq(cref(x[0]), cref(x[1])) < ERROR_THRESH) return;
+    antiparity = parity;
     parity = (parity + 1) % 2;
     iter++;
   }
@@ -62,7 +54,7 @@ int main(int argc, char* argv[])
   nworkers = stoi(argv[3]);
 
   // init random instance
-  tie(A, x, b, sol) = init_rand(size, -10, 10);
+  tie(A, x, b, sol) = init_rand(size, -10, 10, false);
   
   // time and run algorithm
   start = chrono::high_resolution_clock::now();
