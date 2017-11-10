@@ -2,9 +2,11 @@
 FastFlow and C++11 implementations of Jacobi iterative method for linear systems.
 
 ## Running
-`make testmic` will start a test run on the Knight's Corner machine.
+Please make sure all script files in the `run` subfolder have execute permissions.
 
-`make testxeon` will start a test run on the local Xeon E5.
+`make test_mic` will start a test run on the Knight's Corner machine.
+
+`make test_xeon` will start a test run on the local Xeon E5.
 
 Test runs will build all necessary binaries, gather data and automatically generate plots in the `tests` subfolder.
 
