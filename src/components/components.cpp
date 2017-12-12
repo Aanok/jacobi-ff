@@ -96,7 +96,7 @@ inline void jacobi_components(const matrix &A,
                               const long max_iter,
                               const long nworkers)
 {
-  long grain = size/1000;
+  long grain = size/100;
   vector<unique_ptr<ff_node> > workers;
   
   for (int i = 0; i < nworkers; i++)
